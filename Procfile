@@ -1,1 +1,1 @@
-web: bash -lc "bash ./config_jupy"
+web: bash -lc "bash ./config_jupyter"
