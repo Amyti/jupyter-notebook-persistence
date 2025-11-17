@@ -1,0 +1,6 @@
+jupyterlab
+notebook>=7
+psycopg2-binary>=2.9
+sqlalchemy[postgresql]==1.4.1
+git+https://github.com/addisonwurtz/pgcontents.git
+ipython==7.32.0
