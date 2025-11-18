@@ -49,7 +49,7 @@ This app uses **pgcontents** to store all Jupyter files (notebooks, data, script
   curl -O https://cli-dl.scalingo.com/install && bash install
   ```
 * **Git** installed locally
-* [**SSH key** configured on your Scalingo account]([https://doc.scalingo.com/platform/getting-started/connect-with-ssh](https://doc.scalingo.com/platform/getting-started/setup-ssh-macos#create-a-new-ssh-key-pair))
+* [**SSH key** configured on your Scalingo account](https://doc.scalingo.com/platform/getting-started/setup-ssh-macos#create-a-new-ssh-key-pair)
 
 ---
 
