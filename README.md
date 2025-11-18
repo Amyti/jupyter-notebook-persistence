@@ -77,7 +77,7 @@ git remote add scalingo git@ssh.osc-fr1.scalingo.com:jupyter-notebook-persistenc
 ```
 
 Docs:
-[How to create your app]([https://doc.scalingo.com/platform/getting-started/create-your-app](https://doc.scalingo.com/platform/deployment/deploy-with-git#how-to-create-an-app))
+[How to create your app](https://doc.scalingo.com/platform/deployment/deploy-with-git#how-to-create-an-app)
 
 ---
 
