@@ -11,7 +11,7 @@ This repository contains a preconfigured JupyterLab application ready to be depl
 ```
 .
 ├── README.md
-├── config_jupy
+├── config_jupyter
 ├── Procfile
 ├── requirements.txt
 └── jupyter_notebook_config.py
@@ -19,9 +19,9 @@ This repository contains a preconfigured JupyterLab application ready to be depl
 
 ### Preconfigured Files
 
-* **`config_jupy`** - Bash script that initializes pgcontents and starts JupyterLab
+* **`config_jupyter`** - Bash script that initializes pgcontents and starts JupyterLab
 * **`Procfile`** - Tells Scalingo how to run the app
-  -> `web: bash -lc "bash ./config_jupy"`
+  -> `web: bash -lc "bash ./config_jupyter"`
 * **`requirements.txt`** - Python dependencies
 * **`jupyter_notebook_config.py`** - Configures PostgreSQL as the Jupyter backend storage
 
@@ -71,9 +71,9 @@ cd jupyter_scalingo
 ```bash
 scalingo login
 
-scalingo create my-jupyter-app
+scalingo create jupyter-notebook-persistence
 
-git remote add scalingo git@ssh.osc-fr1.scalingo.com:my-jupyter-app.git
+git remote add scalingo git@ssh.osc-fr1.scalingo.com:jupyter-notebook-persistence.git
 ```
 
 Docs:
@@ -84,9 +84,9 @@ Docs:
 ### **Step 3 — Provision PostgreSQL**
 
 ```bash
-scalingo --app my-jupyter-app addons-plans postgresql
+scalingo --app jupyter-notebook-persistence addons-plans postgresql
 
-scalingo --app my-jupyter-app addons-add postgresql postgresql-starter-512
+scalingo --app jupyter-notebook-persistence addons-add postgresql postgresql-starter-512
 ```
 
 Dashboard method:
@@ -111,7 +111,7 @@ Docs: [https://doc.scalingo.com/databases/postgresql/start](https://doc.scalingo
 Generate a secure token for JupyterLab:
 
 ```bash
-scalingo --app my-jupyter-app env-set JUPYTER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+scalingo --app jupyter-notebook-persistence env-set JUPYTER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 ```
 
 [Relevant env variables:](https://doc.scalingo.com/platform/app/environment)
@@ -138,7 +138,7 @@ git push scalingo master
 ### **Step 6 — Open JupyterLab**
 
 ```bash
-scalingo --app my-jupyter-app open
+scalingo --app jupyter-notebook-persistence open
 ```
 
 Authentication:
@@ -160,8 +160,8 @@ openssl rand -base64 32
 ### Change Jupyter token
 
 ```bash
-scalingo --app my-jupyter-app env-set JUPYTER_TOKEN="new-secure-token"
-scalingo --app my-jupyter-app restart
+scalingo --app jupyter-notebook-persistence env-set JUPYTER_TOKEN="new-secure-token"
+scalingo --app jupyter-notebook-persistence restart
 ```
 
 ---
@@ -169,7 +169,7 @@ scalingo --app my-jupyter-app restart
 ### List environment variables
 
 ```bash
-scalingo --app my-jupyter-app env
+scalingo --app jupyter-notebook-persistence env
 ```
 
 ---
@@ -177,15 +177,15 @@ scalingo --app my-jupyter-app env
 ### View live logs
 
 ```bash
-scalingo --app my-jupyter-app logs --follow
+scalingo --app jupyter-notebook-persistence logs --follow
 ```
 
 ---
 
-### [Access PostgreSQL console](https://doc.scalingo.com/databases/postgresql/console)
+### [Access PostgreSQL console](https://doc.scalingo.com/databases/postgresql/getting-started/accessing)
 
 ```bash
-scalingo --app my-jupyter-app pgsql-console
+scalingo --app jupyter-notebook-persistence pgsql-console
 ```
 
 
