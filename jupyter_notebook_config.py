@@ -33,7 +33,14 @@ try:
         c.S3ContentsManager.secret_access_key = s3_secret_key
         c.S3ContentsManager.endpoint_url = s3_endpoint
 
+        c.S3ContentsManager.s3fs_kwargs = {
+            "config_kwargs": {
+                "checksum_mode": "disabled"
+            }
+        }
+
         print("Using S3ContentsManager (S3 Object Storage)")
+
 
     else:
         db_url = os.getenv('DATABASE_URL') or os.getenv('SCALINGO_POSTGRESQL_URL', '')
