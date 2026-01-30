@@ -2,17 +2,21 @@
 set -euo pipefail
 
 echo "Initializing pgcontents..."
-pgcontents init --no-prompt -l ${DATABASE_URL/postgres:/postgresql:} || echo "Error during the initialization of pgcontents."; exit 1
+
+DB_URL="${DATABASE_URL:-}"
+if [[ "$DB_URL" == postgres://* ]]; then
+  DB_URL="${DB_URL/postgres:/postgresql:}"
+fi
+
+pgcontents init --no-prompt -l "$DB_URL" || {
+  echo "Error during the initialization of pgcontents"
+  exit 1
+}
+
 echo "pgcontents initialized"
 
 echo "Starting JupyterLab on Scalingo"
 
-DB_URL="${DATABASE_URL:-}"
-if [ -z "$DB_URL" ] && [ -n "${SCALINGO_POSTGRESQL_URL:-}" ]; then
-  DB_URL="$SCALINGO_POSTGRESQL_URL"
-fi
-
-echo "Starting Jupyter Lab"
 exec jupyter lab \
   --no-browser \
   --ServerApp.ip=0.0.0.0 \
