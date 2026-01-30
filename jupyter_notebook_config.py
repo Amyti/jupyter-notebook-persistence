@@ -29,13 +29,9 @@ try:
         c.ServerApp.contents_manager_class = S3ContentsManager
         c.S3ContentsManager.bucket = s3_bucket_name
         c.S3ContentsManager.prefix = ""
-        c.S3ContentsManager.key_id = s3_access_key
-        c.S3ContentsManager.secret_key = s3_secret_key
+        c.S3ContentsManager.access_key_id = s3_access_key
+        c.S3ContentsManager.secret_access_key = s3_secret_key
         c.S3ContentsManager.endpoint_url = s3_endpoint
-
-        c.S3ContentsManager.s3fs_config_kwargs = {
-            "checksum": False
-        }
 
         print("Using S3ContentsManager (S3 Object Storage)")
 
