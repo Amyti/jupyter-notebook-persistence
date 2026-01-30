@@ -2,19 +2,20 @@ try:
     import os, hashlib
     import traceback
     import pgcontents
+    from jupyter_server.auth import passwd
 
     c = get_config()
 
     c.ServerApp.root_dir = '/'
     uid = os.environ.get('SCALINGO_UID', '')
 
-    passwd = os.environ.get('JUPYTER_NOTEBOOK_PASSWORD', '')
-    if passwd:
-        import IPython
-        c.ServerApp.password = IPython.lib.passwd(passwd)
+
+    passwd_env = os.environ.get("JUPYTER_NOTEBOOK_PASSWORD", "")
+    if passwd_env:
+        c.ServerApp.password = passwd(passwd_env)
     else:
-        c.ServerApp.token = ''
-        c.ServerApp.password = ''
+        c.ServerApp.token = ""
+        c.ServerApp.password = ""
 
     c.ServerApp.terminado_settings = {'shell_command': ['/bin/bash']}
 
