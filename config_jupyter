@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Initializing pgcontents..."
-
-DB_URL="${DATABASE_URL:-}"
-if [[ "$DB_URL" == postgres://* ]]; then
-  DB_URL="${DB_URL/postgres:/postgresql:}"
+if [[ -z "${JUPYTER_NOTEBOOK_PASSWORD:-}" && -z "${JUPYTER_TOKEN:-}" ]]; then
+  echo "ERROR: Set JUPYTER_NOTEBOOK_PASSWORD or JUPYTER_TOKEN before starting"
+  exit 1
 fi
 
-pgcontents init --no-prompt -l "$DB_URL" || {
-  echo "Error during the initialization of pgcontents"
+if [[ -n "${JUPYTER_NOTEBOOK_PASSWORD:-}" && ${#JUPYTER_NOTEBOOK_PASSWORD} -lt 12 ]]; then
+  echo "ERROR: JUPYTER_NOTEBOOK_PASSWORD must be at least 12 characters"
   exit 1
-}
-
-echo "pgcontents initialized"
+fi
 
 echo "Starting JupyterLab on Scalingo"
 

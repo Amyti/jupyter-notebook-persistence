@@ -2,169 +2,146 @@
 
 <img src="jupyter.png" alt="JupyterLab" width="50%">
 
-This repository contains a preconfigured JupyterLab application ready to be deployed on **Scalingo**, with fully persistent notebook/file storage using **PostgreSQL + pgcontents**.
+This repository contains a preconfigured JupyterLab application ready to be deployed on **Scalingo**, with fully persistent notebook/file storage using **PostgreSQL**.
 
 ---
 
-## Repository Structure
+## Security notices
+
+> **Authentication is mandatory.** The app will refuse to start if neither `JUPYTER_TOKEN` nor `JUPYTER_NOTEBOOK_PASSWORD` is configured.
+
+> **Terminal access is disabled.** The JupyterLab terminal is intentionally disabled to prevent access to environment variables, credentials, and the container filesystem.
+
+> **Do not use for sensitive data.** This setup is not suitable for sensitive, personal, customer, or production data without additional security controls (network isolation, access restrictions, audit logging).
+
+---
+
+## Repository structure
 
 ```
 .
 ├── README.md
-├── config_jupyter
 ├── Procfile
+├── config_jupyter
 ├── requirements.txt
-└── jupyter_notebook_config.py
+├── jupyter_notebook_config.py
+└── ContentsManager/
+    ├── __init__.py
+    ├── manager.py
+    ├── checkpoints.py
+    └── utils.py
 ```
 
-### Preconfigured Files
-
-* **`config_jupyter`** - Bash script that initializes pgcontents and starts JupyterLab
-* **`Procfile`** - Tells Scalingo how to run the app
-  -> `web: bash -lc "bash ./config_jupyter"`
-* **`requirements.txt`** - Python dependencies
-* **`jupyter_notebook_config.py`** - Configures PostgreSQL as the Jupyter backend storage
+- **`config_jupyter`** — starts JupyterLab after validating authentication config
+- **`Procfile`** — tells Scalingo how to run the app
+- **`requirements.txt`** — pinned Python dependencies
+- **`jupyter_notebook_config.py`** — configures PostgreSQL as the Jupyter storage backend
+- **`ContentsManager/`** — custom Jupyter contents manager backed by PostgreSQL
 
 ---
 
-## Architecture Overview
+## Architecture
 
-This app uses **pgcontents** to store all Jupyter files (notebooks, data, scripts…) **inside PostgreSQL**, instead of Scalingo’s ephemeral filesystem.
+All Jupyter files (notebooks, scripts, data…) are stored directly in **PostgreSQL** instead of Scalingo's ephemeral filesystem.
 
-### Benefits
-
-* **Full persistence** across restarts & redeployments
-* **Multi-instance ready** (several containers share the same DB)
-* **Automatic backups** thanks to Scalingo PostgreSQL plans
-* **No data loss** due to ephemeral FS
+**Benefits:**
+- Persistence across restarts and redeployments
+- Multi-instance ready (several containers share the same DB)
+- Automatic backups via Scalingo PostgreSQL plans
+- No data loss from ephemeral filesystem
 
 ---
 
 ## Requirements
 
-* **Scalingo CLI installed**
-  [Install the CLI](https://doc.scalingo.com/platform/cli/start)
+- **Scalingo CLI** — [installation guide](https://doc.scalingo.com/platform/cli/start)
 
   ```bash
   curl -O https://cli-dl.scalingo.com/install && bash install
   ```
-* **Git** installed locally
-* [**SSH key** configured on your Scalingo account](https://doc.scalingo.com/platform/getting-started/setup-ssh-macos#create-a-new-ssh-key-pair)
+
+- **Git** installed locally
+- [SSH key configured on your Scalingo account](https://doc.scalingo.com/platform/getting-started/setup-ssh-macos#create-a-new-ssh-key-pair)
 
 ---
 
-## Deployment Guide
+## Deployment
 
----
-
-### **Step 1 — Clone the repository**
+### Step 1 — Clone the repository
 
 ```bash
 git clone git@github.com:Amyti/jupyter_scalingo.git
 cd jupyter_scalingo
 ```
 
----
-
-### **Step 2 — Create the Scalingo app**
+### Step 2 — Create the Scalingo app
 
 ```bash
 scalingo login
-
 scalingo create jupyter-notebook-persistence
-
 git remote add scalingo git@ssh.osc-fr1.scalingo.com:jupyter-notebook-persistence.git
 ```
 
-Docs:
-[How to create your app](https://doc.scalingo.com/platform/deployment/deploy-with-git#how-to-create-an-app)
-
----
-
-### **Step 3 — Provision PostgreSQL**
+### Step 3 — Provision PostgreSQL
 
 ```bash
-scalingo --app jupyter-notebook-persistence addons-plans postgresql
-
 scalingo --app jupyter-notebook-persistence addons-add postgresql postgresql-starter-512
 ```
 
-Dashboard method:
+Or via the dashboard: **Resources → Add an addon → PostgreSQL**.
 
-1. [Connect to your Dashboard](https://dashboard.scalingo.com)
-2. Select your app
-3. *Resources* -> *Add an addon*
-4. Choose **PostgreSQL**
-5. Pick a plan and validate
+Scalingo automatically injects `DATABASE_URL` and `SCALINGO_POSTGRESQL_URL`.
 
-Scalingo automatically injects these variables:
+### Step 4 — Set authentication (required)
 
-* `DATABASE_URL`
-* `SCALINGO_POSTGRESQL_URL`
-
-Docs: [https://doc.scalingo.com/databases/postgresql/start](https://doc.scalingo.com/databases/postgresql/start)
-
----
-
-### **Step 4 — Configure environment variables**
-
-Generate a secure token for JupyterLab:
+**Option A — Token**
 
 ```bash
-scalingo --app jupyter-notebook-persistence env-set JUPYTER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+scalingo --app jupyter-notebook-persistence env-set \
+  JUPYTER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 ```
 
-[Relevant env variables:](https://doc.scalingo.com/platform/app/environment)
-
-* `DATABASE_URL` - auto-generated
-* `SCALINGO_POSTGRESQL_URL` - auto-generated
-* `JUPYTER_TOKEN` - Jupyter auth token
-* `JUPYTER_NOTEBOOK_PASSWORD` - optional password
-* `SCALINGO_UID` - user UID (optional)
-
-
----
-
-### **Step 5 — Deploy to Scalingo**
+**Option B — Password** (minimum 12 characters)
 
 ```bash
-git add *
-git commit -m "initializing jupyter-app"
-git push scalingo master
+scalingo --app jupyter-notebook-persistence env-set JUPYTER_NOTEBOOK_PASSWORD="your-password"
 ```
 
----
+The app will **refuse to start** if neither variable is set, or if the password is shorter than 12 characters.
 
-### **Step 6 — Open JupyterLab**
+### Step 5 — Deploy
+
+```bash
+git add .
+git commit -m "deploy jupyterlab"
+git push scalingo main
+```
+
+### Step 6 — Open JupyterLab
 
 ```bash
 scalingo --app jupyter-notebook-persistence open
 ```
 
-Authentication:
-
-* Use the token from `JUPYTER_TOKEN`
-* If no token is set -> Jupyter allows open access
-
-### Generate a secure token manually
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-openssl rand -base64 32
-```
+Authenticate with the token or password configured in Step 4.
 
 ---
 
-## Advanced Configuration
+## Operations
 
-### Change Jupyter token
+### Rotate the token
 
 ```bash
-scalingo --app jupyter-notebook-persistence env-set JUPYTER_TOKEN="new-secure-token"
+scalingo --app jupyter-notebook-persistence env-set \
+  JUPYTER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 scalingo --app jupyter-notebook-persistence restart
 ```
 
----
+### View logs
+
+```bash
+scalingo --app jupyter-notebook-persistence logs --follow
+```
 
 ### List environment variables
 
@@ -172,56 +149,36 @@ scalingo --app jupyter-notebook-persistence restart
 scalingo --app jupyter-notebook-persistence env
 ```
 
----
-
-### View live logs
-
-```bash
-scalingo --app jupyter-notebook-persistence logs --follow
-```
-
----
-
-### [Access PostgreSQL console](https://doc.scalingo.com/databases/postgresql/getting-started/accessing)
+### Inspect stored notebooks in PostgreSQL
 
 ```bash
 scalingo --app jupyter-notebook-persistence pgsql-console
 ```
 
-
----
-
-### List files stored in PostgreSQL
-
-Inside the console:
-
 ```sql
-\dt
-SELECT * FROM pgcontents.file;
+SELECT path, updated_at FROM jnb_files ORDER BY updated_at DESC;
 ```
 
 ---
 
+## Dependencies
 
+All dependencies are pinned to exact versions. Update them after checking for CVEs on [osv.dev](https://osv.dev).
+
+| Package | Version |
+|---|---|
+| jupyterlab | 4.5.6 |
+| notebook | 7.5.5 |
+| psycopg2-binary | 2.9.12 |
+| sqlalchemy | 2.0.49 |
+| nbformat | 5.10.4 |
+| ipython | 9.13.0 |
+
+---
 
 ## Resources
 
-### Scalingo Documentation
-
-* [https://doc.scalingo.com](https://doc.scalingo.com)
-* PostgreSQL: [https://doc.scalingo.com/databases/postgresql/start](https://doc.scalingo.com/databases/postgresql/start)
-* Environment variables: [https://doc.scalingo.com/platform/app/environment](https://doc.scalingo.com/platform/app/environment)
-* Scalingo CLI: [https://doc.scalingo.com/platform/cli/start](https://doc.scalingo.com/platform/cli/start)
-
-### Jupyter & pgcontents
-
-* JupyterLab: [https://jupyterlab.readthedocs.io](https://jupyterlab.readthedocs.io)
-* pgcontents: [https://github.com/quantopian/pgcontents](https://github.com/quantopian/pgcontents)
-* Jupyter Server config: [https://jupyter-server.readthedocs.io](https://jupyter-server.readthedocs.io)
-
-### Support
-
-* Scalingo Support: [support@scalingo.com](mailto:support@scalingo.com)
-* Status page: [https://status.scalingo.com](https://status.scalingo.com)
-* Jupyter Forum: [https://discourse.jupyter.org](https://discourse.jupyter.org)
-
+- Scalingo docs: [https://doc.scalingo.com](https://doc.scalingo.com)
+- JupyterLab: [https://jupyterlab.readthedocs.io](https://jupyterlab.readthedocs.io)
+- Jupyter Server config: [https://jupyter-server.readthedocs.io](https://jupyter-server.readthedocs.io)
+- Scalingo support: [support@scalingo.com](mailto:support@scalingo.com)
