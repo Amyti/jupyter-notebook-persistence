@@ -12,8 +12,6 @@ This repository contains a preconfigured JupyterLab application ready to be depl
 
 > **Terminal access is disabled.** The JupyterLab terminal is intentionally disabled to prevent access to environment variables, credentials, and the container filesystem.
 
-> **Do not use for sensitive data.** This setup is not suitable for sensitive, personal, customer, or production data without additional security controls (network isolation, access restrictions, audit logging).
-
 ---
 
 ## Repository structure
