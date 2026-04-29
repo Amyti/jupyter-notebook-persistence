@@ -8,18 +8,23 @@ from .utils import _now, _ts
 
 
 class PGCheckpoints(GenericCheckpointsMixin, Checkpoints):
+    """Gestion des checkpoints Jupyter stockés en PostgreSQL (table jnb_checkpoints).
+    Un seul checkpoint par fichier est conservé — l'ancien est écrasé à chaque sauvegarde.
+    """
 
     def __init__(self, engine, **kwargs):
         super().__init__(**kwargs)
         self._engine = engine
 
     def _exec(self, sql, **params):
+        # Exécute une requête d'écriture et commit immédiatement.
         with self._engine.connect() as conn:
             result = conn.execute(text(sql), params)
             conn.commit()
             return result
 
-    def create_file_checkpoint(self, content, format, path):
+    def create_file_checkpoint(self, content, content_format, path):
+        # Insère ou remplace le checkpoint existant pour ce fichier.
         self._exec(
             """
             INSERT INTO jnb_checkpoints (path, checkpoint_id, content, created_at)
@@ -32,6 +37,7 @@ class PGCheckpoints(GenericCheckpointsMixin, Checkpoints):
         return {"id": "1", "last_modified": _now()}
 
     def create_notebook_checkpoint(self, nb, path):
+        # Sérialise le notebook avant de le sauvegarder comme checkpoint.
         return self.create_file_checkpoint(nbformat.writes(nb), "text", path)
 
     def get_file_checkpoint(self, checkpoint_id, path):
@@ -41,12 +47,14 @@ class PGCheckpoints(GenericCheckpointsMixin, Checkpoints):
                 {"path": path, "cid": checkpoint_id},
             ).fetchone()
         if row is None:
-            raise HTTPError(404, f"Checkpoint {checkpoint_id} not found for {path}")
-        return {"type": "file", "content": row[0], "format": "text", "last_modified": _ts(row[1])}
+            raise HTTPError(404, f"Checkpoint {checkpoint_id} introuvable pour {path}")
+        content, created_at = row
+        return {"type": "file", "content": content, "format": "text", "last_modified": _ts(created_at)}
 
     def get_notebook_checkpoint(self, checkpoint_id, path):
-        cp = self.get_file_checkpoint(checkpoint_id, path)
-        return {"type": "notebook", "content": nbformat.reads(cp["content"], as_version=4)}
+        # Récupère le checkpoint et le désérialise en objet notebook.
+        checkpoint = self.get_file_checkpoint(checkpoint_id, path)
+        return {"type": "notebook", "content": nbformat.reads(checkpoint["content"], as_version=4)}
 
     def delete_checkpoint(self, checkpoint_id, path):
         self._exec(
@@ -60,10 +68,12 @@ class PGCheckpoints(GenericCheckpointsMixin, Checkpoints):
                 text("SELECT checkpoint_id, created_at FROM jnb_checkpoints WHERE path = :path"),
                 {"path": path},
             ).fetchall()
-        return [{"id": r[0], "last_modified": _ts(r[1])} for r in rows]
+        return [{"id": checkpoint_id, "last_modified": _ts(created_at)} for checkpoint_id, created_at in rows]
 
     def rename_all_checkpoints(self, old_path, new_path):
+        # Appelé automatiquement lors d'un renommage de fichier.
         self._exec("UPDATE jnb_checkpoints SET path = :new WHERE path = :old", new=new_path, old=old_path)
 
     def delete_all_checkpoints(self, path):
+        # Appelé automatiquement lors d'une suppression de fichier.
         self._exec("DELETE FROM jnb_checkpoints WHERE path = :path", path=path)

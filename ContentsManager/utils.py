@@ -1,10 +1,10 @@
-import mimetypes
 from datetime import datetime, timezone
 
 from tornado.web import HTTPError
 
-MAX_CONTENT_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_CONTENT_BYTES = 50 * 1024 * 1024  # 50 Mo maximum par fichier
 
+# SQL exécuté au démarrage pour créer les tables et l'index si nécessaire.
 _INIT_SQL = """
 CREATE TABLE IF NOT EXISTS jnb_files (
     path        TEXT        PRIMARY KEY,
@@ -31,42 +31,23 @@ def _now() -> str:
 
 
 def _ts(dt) -> str:
+    # Convertit un datetime issu de la DB en ISO 8601. Retourne l'heure actuelle si None.
     if dt is None:
         return _now()
     return dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
 
 
 def _clean(path: str) -> str:
-    """Normalize path and reject traversal attempts."""
+    # Normalise le chemin et bloque les tentatives de path traversal (null bytes, .., .).
     if "\x00" in path:
-        raise HTTPError(400, "Invalid path")
+        raise HTTPError(400, "Chemin invalide")
     path = path.strip("/")
     for part in (path.split("/") if path else []):
         if part in (".", "..") or not part:
-            raise HTTPError(400, "Invalid path")
+            raise HTTPError(400, "Chemin invalide")
     return path
 
 
 def _like_prefix(prefix: str) -> str:
-    """Escape SQL LIKE special chars in prefix, then append %."""
+    # Échappe les caractères spéciaux SQL LIKE (%, _, \) puis ajoute % pour la recherche par préfixe.
     return prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-
-
-def _check_size(content_str: str, label: str):
-    if len(content_str.encode()) > MAX_CONTENT_BYTES:
-        raise HTTPError(413, f"{label} exceeds maximum size of {MAX_CONTENT_BYTES // 1024 // 1024} MB")
-
-
-def _base_model(name: str, path: str, kind: str, **extra) -> dict:
-    return {
-        "name": name,
-        "path": path,
-        "type": kind,
-        "writable": True,
-        "last_modified": _now(),
-        "created": _now(),
-        "content": None,
-        "format": None,
-        "mimetype": None,
-        **extra,
-    }
